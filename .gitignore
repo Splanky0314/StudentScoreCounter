@@ -1,0 +1,5 @@
+student_data.py
+*.txt
+*.xlsx
+todict.py
+__pycache__
