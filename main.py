@@ -1,9 +1,11 @@
-from openpyxl import load_workbook # excel lib
+from openpyxl import load_workbook 
+from typing import Union
 from openpyxl.comments import Comment
 import traceback
-from functions import *
-# from student_data import *
 
+################################################
+################################################
+######### 매일 여기만 수정하면 됩니다 ###########
 
 # 수정 필요 변수
 TARGET_COL = 25 # 날짜 기반 1/18
@@ -13,12 +15,69 @@ EXCEL_FILE_NAME = "상벌점관리_01_18.xlsx"
 # EXCEL_FILE_NAME = "test.xlsx" 
 KAKAO_TXT_NAME = "kakao8.txt" # 날짜 기반 1/18
 
-# excel 
+###############################################
+###############################################
+###############################################
+"""
+필요 class 및 함수
+"""
+
+class ScoreData:
+    def __init__(self, stdname: Union[str, list], score: int, detail: str):
+        self.stdname = stdname # stdname 또는 stdname list 또는 roomnum이 저장
+        self.score = score
+        self.detail = detail
+
+def excel_update_cell(ws, row:int, col:int, score_data: ScoreData):
+    # update scores
+    if ws.cell(row, col).value:
+        ws.cell(row, col, score_data.score + ws.cell(row, col,score_data.score).value)
+    else:
+        ws.cell(row, col, score_data.score)
+
+    # update comment
+    if ws.cell(row, col).comment: 
+        comment = Comment(ws.cell(row, col).comment.content + '\n' + score_data.stdname + ":" + score_data.detail + " " + str(score_data.score), AUTHOR)
+    else: 
+        comment = Comment(score_data.stdname + ":" + score_data.detail + " " + str(score_data.score), AUTHOR) #
+    ws.cell(row, col).comment = comment
+
+
+def find_command_and_return_index(line: str, command: str) -> ScoreData:
+    words = list(line.split())
+    idx = words.index(command)
+    if command == 'ㅁㅁ':
+        stdnamelist = list()
+        score = int()
+        detail = str()
+        for i in range(idx+1, len(words)):
+            if ('-' in words[i]) or ('+' in words[i]):
+                score = int(words[i].replace('점', ''))
+                detail = words[i+1]
+                break
+            else:
+                stdnamelist.append(words[i])
+        # return [stdnamelist, score, detail]
+        return ScoreData(stdnamelist, score, detail)
+    else: # ㄴㄴ, ㅇㅇ 처리
+        stdname = words[idx+1]
+        score = int(words[idx+2].replace('점', '').replace('호', ''))
+        detail = words[idx+3]
+        # return [stdname, score, detail]
+        return ScoreData(stdname, score, detail)
+
+###############################################
+"""
+
+student data 읽어오기
+- excel 1행의 값을 stdname으로 인식
+- excel 2행의 값을 roomnum으로 인식
+
+"""
+# excel 파일 열기
 wb = load_workbook(EXCEL_FILE_NAME)
 ws = wb.active
 
-###############################################
-# student data 읽어오기
 stdrow = dict()
 room = dict()
 
@@ -59,23 +118,13 @@ for line in lines: # kakao talk 내용 한줄 한줄 읽어오기
             ㅇㅇ 홍길동 -3 수학태도불량
             """
             response = find_command_and_return_index(line, "ㅇㅇ")
-            stdname = response[0]
-            score = response[1]
-            detail = response[2]        
+            stdname = response.stdname
+            score = response.score
+            detail = response.detail      
             target_row = stdrow[stdname] # todo: 나중에 존재 X 경우 예외처리 
 
-            # score 업데이트
-            if ws.cell(target_row, TARGET_COL).value:
-                ws.cell(target_row, TARGET_COL, score + ws.cell(target_row, TARGET_COL).value)
-            else:
-                ws.cell(target_row, TARGET_COL, score )
-            
-            # detail 메모 추가 
-            if ws.cell(target_row, TARGET_COL).comment:
-                comment = Comment(ws.cell(target_row, TARGET_COL).comment.content + '\n' + stdname + ":" +detail + " " + str(score), AUTHOR)
-            else:
-                comment = Comment(stdname + ":" +detail + " " + str(score), AUTHOR) #
-            ws.cell(target_row, TARGET_COL).comment = comment
+            # excel에 score & comment 업데이트
+            excel_update_cell(ws, target_row, TARGET_COL, response)
             
             # console print
             print(target_row, TARGET_COL, stdname, score, detail)
@@ -89,26 +138,15 @@ for line in lines: # kakao talk 내용 한줄 한줄 읽어오기
             """
             
             response = find_command_and_return_index(line, "ㅁㅁ")
-            stdnamelist = response[0]
-            score = response[1]
-            detail = response[2]        
+            stdnamelist = response.stdname
+            score = response.score
+            detail = response.detail      
             
             for stdname in stdnamelist:
                 target_row = stdrow[stdname] # todo: 나중에 존재 X 경우 예외처리 
 
-                # score 업데이트
-                if ws.cell(target_row, TARGET_COL).value:
-                    ws.cell(target_row, TARGET_COL, score + ws.cell(target_row, TARGET_COL).value)
-                else:
-                    ws.cell(target_row, TARGET_COL, score )
-                
-                # detail 메모 추가 / 기존 comment 가져와야
-                # comment = Comment(stdname + ":" +detail + " " + str(score), AUTHOR)
-                if ws.cell(target_row, TARGET_COL).comment:
-                    comment = Comment(ws.cell(target_row, TARGET_COL).comment.content + '\n' + stdname + ":" +detail + " " + str(score), AUTHOR)
-                else:
-                    comment = Comment(stdname + ":" +detail + " " + str(score), AUTHOR) #
-                ws.cell(target_row, TARGET_COL).comment = comment
+                # excel에 score & comment 업데이트
+                excel_update_cell(ws, target_row, TARGET_COL, ScoreData(stdname, score, detail))
                 
                 # console print
                 print(target_row, TARGET_COL, stdname, score, detail)
@@ -121,32 +159,22 @@ for line in lines: # kakao talk 내용 한줄 한줄 읽어오기
             """
             
             response = find_command_and_return_index(line, "ㄴㄴ")
-            roomnum = int(response[0].replace('호', '')) # room number & '호' 제거
-            score = response[1]
-            detail = response[2]       
+            roomnum = int(response.stdname) # room number & '호' 제거
+            score = response.score
+            detail = response.detail     
             stdlist = room[roomnum] # 해당 room 학생들 리스트  
 
             for stdname in stdlist: 
                 target_row = stdrow[stdname]
 
-                # score 업데이트
-                if ws.cell(target_row, TARGET_COL).value:
-                    ws.cell(target_row, TARGET_COL, score + ws.cell(target_row, TARGET_COL).value)
-                else:
-                    ws.cell(target_row, TARGET_COL, score)
-                
-
-                # detail 메모 추가
-                # comment = Comment(stdname + ":" + detail + " " + str(score), AUTHOR)
-                if ws.cell(target_row, TARGET_COL).comment:
-                    comment = Comment(ws.cell(target_row, TARGET_COL).comment.content + '\n' + stdname + ":" +detail + " " + str(score), AUTHOR)
-                else:
-                    comment = Comment(stdname + ":" +detail + " " + str(score), AUTHOR) #
-                ws.cell(target_row, TARGET_COL).comment = comment
+                # excel에 score & comment 업데이트
+                excel_update_cell(ws, target_row, TARGET_COL, ScoreData(stdname, score, detail))
                 
                 # console print
                 print(target_row, TARGET_COL, roomnum, stdname, score, detail)
-    except Exception as e:
+
+    # Exception Handling
+    except Exception as e: 
         print("="*30)
         print("에러 발생한 부분: " + line)
         traceback.print_exc() # print ERR Message 
