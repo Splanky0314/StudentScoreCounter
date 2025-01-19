@@ -2,4 +2,5 @@ student_data.py
 *.txt
 *.xlsx
 todict.py
+scan_student_data.py
 __pycache__
