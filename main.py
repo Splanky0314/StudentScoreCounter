@@ -8,12 +8,12 @@ import traceback
 ######### 매일 여기만 수정하면 됩니다 ###########
 
 # 수정 필요 변수
-TARGET_COL = 25 # 날짜 기반 1/18
+TARGET_COL = 27 # 날짜 기반 1/20
 search_row_range = 170
 AUTHOR = "김다은"
-EXCEL_FILE_NAME = "상벌점관리_01_18.xlsx" 
+EXCEL_FILE_NAME = "상벌점관리_01_20.xlsx" 
 # EXCEL_FILE_NAME = "test.xlsx" 
-KAKAO_TXT_NAME = "kakao8.txt" # 날짜 기반 1/18
+KAKAO_TXT_NAME = "kakao11.txt" # 날짜 기반 1/20
 
 ###############################################
 ###############################################
@@ -31,7 +31,7 @@ class ScoreData:
 def excel_update_cell(ws, row:int, col:int, score_data: ScoreData):
     # update scores
     if ws.cell(row, col).value:
-        ws.cell(row, col, score_data.score + ws.cell(row, col,score_data.score).value)
+        ws.cell(row, col, score_data.score + ws.cell(row, col).value)
     else:
         ws.cell(row, col, score_data.score)
 
